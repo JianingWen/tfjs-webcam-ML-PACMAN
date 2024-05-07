@@ -63,18 +63,33 @@ export let addExampleHandler;
 export function setExampleHandler(handler) {
   addExampleHandler = handler;
 }
+
+export let deleteExampleHandler;
+export function setDeleteExampleHandler(handler) {
+  deleteExampleHandler = handler
+}
+
 let mouseDown = false;
+let lastClickedLabel = [];
+let undoDown = false;
+// console.log("mouseDown: ", mouseDown)
+// console.log("undoDown: ", undoDown)
 const totals = [0, 0, 0, 0];
 
 const upButton = document.getElementById('up');
 const downButton = document.getElementById('down');
 const leftButton = document.getElementById('left');
 const rightButton = document.getElementById('right');
+const undoButton = document.getElementById('undo');
 
 const thumbDisplayed = {};
 
 async function handler(label) {
+  lastClickedLabel.push(label);
   mouseDown = true;
+  console.log("mouseDown: ", mouseDown)
+  console.log("undoDown: ", undoDown)
+  console.log("lastClickedLabel after add: ", lastClickedLabel);
   const className = CONTROLS[label];
   const button = document.getElementById(className);
   const total = document.getElementById(className + '-total');
@@ -87,6 +102,28 @@ async function handler(label) {
   document.body.removeAttribute('data-active');
 }
 
+async function handleDelete() {
+  undoDown = true;
+  console.log("mouseDown: ", mouseDown)
+  console.log("undoDown: ", undoDown)
+  if (lastClickedLabel.length > 0) {
+    lastLabel = lastClickedLabel.pop()
+    const className = CONTROLS[lastLabel];
+    const button = document.getElementById(className);
+    const total = document.getElementById(className + '-total');
+    if (undoDown) {
+      deleteExampleHandler(lastLabel);
+      document.body.setAttribute('data-active', CONTROLS[lastLabel]);
+      total.innerText = --totals[lastLabel];
+      await tf.nextFrame();
+    }
+    console.log("lastClickedLabel after undo: ", lastClickedLabel);
+    document.body.removeAttribute('data-active');
+  }
+  undoDown = false;
+}
+
+
 upButton.addEventListener('mousedown', () => handler(0));
 upButton.addEventListener('mouseup', () => mouseDown = false);
 
@@ -98,6 +135,9 @@ leftButton.addEventListener('mouseup', () => mouseDown = false);
 
 rightButton.addEventListener('mousedown', () => handler(3));
 rightButton.addEventListener('mouseup', () => mouseDown = false);
+
+undoButton.addEventListener('click', () => handleDelete());
+// undoButton.addEventListener('undoUp', () => undoDown = false);
 
 export function drawThumb(img, label) {
   if (thumbDisplayed[label] == null) {

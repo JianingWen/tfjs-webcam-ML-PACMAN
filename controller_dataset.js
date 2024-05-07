@@ -32,6 +32,9 @@ export class ControllerDataset {
    * @param {number} label The label of the example. Should be a number.
    */
   addExample(example, label) {
+    // console.log("example: ", example)
+    // console.log("label: ", label)
+
     // One-hot encode the label.
     const y = tf.tidy(
         () => tf.oneHot(tf.tensor1d([label]).toInt(), this.numClasses));
@@ -45,6 +48,7 @@ export class ControllerDataset {
       this.ys = tf.keep(y);
     } else {
       const oldX = this.xs;
+      // console.log(this.xs.shape);
       this.xs = tf.keep(oldX.concat(example, 0));
 
       const oldY = this.ys;
@@ -54,5 +58,57 @@ export class ControllerDataset {
       oldY.dispose();
       y.dispose();
     }
+    console.log(this.xs.shape)
+    console.log(this.ys.shape)
   }
+
+  deleteExample(example, label) {
+    // console.log("example: ", example)
+    // console.log("label: ", label)
+    // console.log("this.xs: ", this.xs)
+    // console.log("this.ys: ", this.ys)
+    // console.log(this.xs.shape)
+    // console.log(this.ys.shape)
+
+    // Case1: There is no data be added yet
+    if (this.xs == null || this.ys == null || this.xs.shape[0] === 0 || this.ys.shape[0] === 0) {
+      console.log("No examples be added yet.");
+      return;
+    }
+
+    // Case2: There is one data in dataset => (clean all tensor here)
+    if (this.xs.shape[0] === 1) {
+      // console.log("this.xs: ", this.xs)
+      // console.log("this.ys: ", this.ys)
+      this.xs.dispose();  
+      this.ys.dispose(); 
+      this.xs = null;  
+      this.ys = null; 
+      
+      console.log('No examples in dataste right now.');
+      return;
+    }
+
+    // Case3: There is more tha n one example in dataset => keep the tensor with one less example(not include the last one)
+    tf.tidy(() => {
+      // console.log(this.xs.shape)
+      // console.log(this.ys.shape)
+     
+      // create a new tensor (not include the last one by slice it off)
+      const newX = this.xs.slice([0], [this.xs.shape[0] - 1]);  
+      const newY = this.ys.slice([0], [this.ys.shape[0] - 1]);  
+
+      // Dispose the old tensor holding all examples and labels
+      this.xs.dispose();   
+      this.ys.dispose();  
+
+      // Keep the new tensor
+      this.xs = tf.keep(newX);   
+      this.ys = tf.keep(newY);  
+
+      console.log(this.xs.shape)
+      console.log(this.ys.shape)
+    });
+  }
+
 }

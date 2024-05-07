@@ -50,12 +50,38 @@ async function loadTruncatedMobileNet() {
 // labels 0, 1, 2, 3 respectively.
 ui.setExampleHandler(async label => {
   let img = await getImage();
-
+  // console.log("img in add: ", img)
   controllerDataset.addExample(truncatedMobileNet.predict(img), label);
 
   // Draw the preview thumbnail.
   ui.drawThumb(img, label);
   img.dispose();
+})
+
+ui.setDeleteExampleHandler(async label => {
+  let img = await getLastImage();
+  // console.log("img in delete: ", img)
+  // console.log("label: ", label)
+
+  controllerDataset.deleteExample(img, label);
+  img.dispose();
+
+  // TODO: I want to show the second last image of this class (currently not handle this situation)
+  // Draw the next available img for the same label
+  let nextImg = await getImage(label);
+  if (nextImg) {
+    // If there is another image (the total sample for this class is not 0)
+    ui.drawThumb(nextImg, label); 
+    nextImg.dispose(); 
+  } 
+  else {
+    // If no more images are available (the total sample for this class is 0)
+    console.log("No more images available under this label.");
+  }
+
+  // // Draw the preview thumbnail.
+  // ui.drawThumb(img, label);
+  // img.dispose();
 })
 
 /**
@@ -152,6 +178,7 @@ async function predict() {
   ui.donePredicting();
 }
 
+let imageCollected = [];
 /**
  * Captures a frame from the webcam and normalizes it between -1 and 1.
  * Returns a batched image (1-element batch) of shape [1, w, h, c].
@@ -160,8 +187,24 @@ async function getImage() {
   const img = await webcam.capture();
   const processedImg =
       tf.tidy(() => img.expandDims(0).toFloat().div(127).sub(1));
+
+  // console.log("processedImg: ", processedImg)
+  imageCollected.push(processedImg);
+
   img.dispose();
   return processedImg;
+}
+
+async function getLastImage() {
+  if (imageCollected.length > 0) {
+    lastImage = imageCollected.pop()
+    // console.log("lastImage: ", lastImage)
+    return lastImage; 
+  } 
+  else {
+    console.error('No images captured yet.');
+    return null;
+  }
 }
 
 document.getElementById('train').addEventListener('click', async () => {
